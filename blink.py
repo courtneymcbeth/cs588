@@ -1,6 +1,7 @@
 import rospy
 from std_msgs.msg import String, Bool, Float32, Float64
 from pacmod_msgs.msg import PositionWithSpeed, PacmodCmd, SystemRptInt, SystemRptFloat, VehicleSpeedRpt
+import time
 
 # For message format, see
 # https://github.com/astuff/astuff_sensor_msgs/blob/3.3.0/pacmod_msgs/msg/PacmodCmd.msg
@@ -11,16 +12,16 @@ class BlinkDistress:
     """
     def __init__(self):
         # TODO: Initialize your publishers and subscribers here
-        
+       
         # When you create a subscriber to a /pacmod/parsed_tx/X topic, you will need to provide a callback function.
         # You will want this callback to be a BlinkDistress method, such as print_X(self, msg).  msg will have a
         # ROS message type, and you can find out what this is by either reading the documentation or running
         # "rostopic info /pacmod/parsed_tx/X" on the command line.
-        
-        rospy.Subscriber("/pacmod/parsed_tx/vehicle_speed_rpt", VehicleSpeedRpt, lambda x: print(x.data.vehicle_speed))
-        rospy.Subscriber("pacmod/parsed_tx/turn_rpt", SystemRptInt, lambda x: print(x.data.enabled))
+       
+        rospy.Subscriber("/pacmod/parsed_tx/vehicle_speed_rpt", VehicleSpeedRpt, lambda x: print(x.vehicle_speed))
+        rospy.Subscriber("pacmod/parsed_tx/turn_rpt", SystemRptInt, lambda x: print(x.enabled))
 
-        self.turn_pub = rospy.Publisher("/pacmod/as_rx/turn_cmd", PacmodCmd, queue=10)
+        self.turn_pub = rospy.Publisher("/pacmod/as_rx/turn_cmd", PacmodCmd, queue_size=10)
 
         self.last_command_time = 0
         self.state = 0
@@ -36,43 +37,43 @@ class BlinkDistress:
     def cleanup(self):
         """Run last"""
         pass
-    
+   
     def update(self):
         """Run in a loop"""
         # TODO: Implement your control loop here
         # You will need to publish a PacmodCmd() to /pacmod/as_rx/turn_cmd.  Read the documentation to see
         # what the data in the message indicates.
 
-        if time.time() - self.time_last_command > 2.0:
-            self.time_last_command = time.time()
+        if time.time() - self.last_command_time >= 2.0:
+            self.last_command_time = time.time()
             if self.state == 0:
                 self.state = 1
-                
+               
                 # turn left
-                msg = PacmodCmd
+                msg = PacmodCmd()
                 msg.ignore = False
-                msg.enabled = True
+                #msg.enabled = True
                 msg.clear = False
                 msg.ui16_cmd = 2
                 self.turn_pub.publish(msg)
-            
-            elif state == 1:
-                state = 2
+           
+            elif self.state == 1:
+                self.state = 2
 
                 # turn right
-                msg = PacmodCmd
+                msg = PacmodCmd()
                 msg.ignore = False
-                msg.enabled = True
+                # msg.enabled = True
                 msg.clear = False
                 msg.ui16_cmd = 0
                 self.turn_pub.publish(msg)
 
-            elif state == 2:
-                state = 0
+            elif self.state == 2:
+                self.state = 0
 
-                msg = PacmodCmd
+                msg = PacmodCmd()
                 msg.ignore = False
-                msg.enabled = True
+                # msg.enabled = True
                 msg.clear = False
                 msg.ui16_cmd = 1
                 self.turn_pub.publish(msg)
